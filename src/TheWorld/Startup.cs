@@ -11,6 +11,10 @@ using TheWorld.Services;
 using Microsoft.Extensions.PlatformAbstractions;
 using TheWorld.Models;
 using Microsoft.Extensions.Logging;
+using Newtonsoft.Json.Serialization;
+using AutoMapper;
+using TheWorld.ViewModels;
+using TheWorld.Controllers.Api;
 
 namespace TheWorld
 {
@@ -21,7 +25,7 @@ namespace TheWorld
         {
             var builder = new ConfigurationBuilder()
                 .SetBasePath(appEnv.ApplicationBasePath)
-                .AddJsonFile("config.json")
+                .AddJsonFile("config.json")                
                 .AddEnvironmentVariables();
 
             Configuration = builder.Build();
@@ -32,13 +36,19 @@ namespace TheWorld
         // For more information on how to configure your application, visit http://go.microsoft.com/fwlink/?LinkID=398940
         public void ConfigureServices(IServiceCollection services)
         {
-            services.AddMvc();
+            services.AddMvc()
+                .AddJsonOptions(opt =>
+                {
+                    opt.SerializerSettings.ContractResolver = new CamelCasePropertyNamesContractResolver();
+                });
 
             services.AddLogging();
 
             services.AddEntityFramework()
                 .AddSqlServer()
                 .AddDbContext<WorldContext>();
+
+            services.AddScoped<CoordService>();
 
             services.AddTransient<WorldContextSeedData>();
 
@@ -57,6 +67,12 @@ namespace TheWorld
             loggerFactory.AddDebug(LogLevel.Warning);
 
             app.UseStaticFiles();
+
+            Mapper.Initialize(config =>
+            {
+                config.CreateMap<Trip, TripViewModel>().ReverseMap();
+                config.CreateMap<Stop, StopViewModel>().ReverseMap();
+            });
 
             app.UseMvc( config =>
             {
